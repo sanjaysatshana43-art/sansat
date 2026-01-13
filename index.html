@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ta">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>SanSat Fruit Co. | Fresh Pomegranate & Jambu from Batticaloa</title>
+
+  <meta name="description"
+    content="Fresh, natural pomegranate and jambu delivered from our Batticaloa farm. No wax, no chemicals. 24-hour farm-to-door delivery. Cash on delivery." />
+  <meta name="keywords"
+    content="pomegranate, jambu, wax apple, fresh fruit, Batticaloa, Sri Lanka, organic, natural, farm fresh" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SanSat Fruit Co. | Fresh Pomegranate & Jambu" />
+  <meta property="og:description"
+    content="Fresh, natural pomegranate and jambu delivered from our Batticaloa farm. No wax, no chemicals." />
+  <meta property="og:image" content="/social-preview.jpg" />
+  <meta property="og:type" content="website" />
+
+  <!-- PWA Essential -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#C41E3A" />
+
+  <!-- Preload Critical Images for Faster Load -->
+  <link rel="preload" href="/SanSatLogo.webp" as="image" type="image/webp" />
+  <link rel="preload" href="/dark_red_thai_wax_apple.webp" as="image" type="image/webp" />
+  <link rel="preload" href="/red_pomegranate.webp" as="image" type="image/webp" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- iOS PWA Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SanSat" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+
+  <!-- Service Worker Registration with Auto-Update -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('SW registered:', registration.scope);
+
+          // Check for updates on every page load
+          registration.update();
+
+          // Listen for new service worker waiting
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content available - auto-activate it
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                console.log('New version available - refreshing...');
+                window.location.reload();
+              }
+            });
+          });
+
+          // Handle controller change (when new SW takes over)
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('New service worker activated');
+          });
+        } catch (error) {
+          console.log('SW registration failed:', error);
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
