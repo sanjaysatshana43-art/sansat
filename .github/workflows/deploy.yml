@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+# Grant write permissions to push to gh-pages
+permissions:
+  contents: write
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
