@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ta">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>SanSat Fruit Co. | Fresh Pomegranate & Jambu from Batticaloa</title>
+
+  <meta name="description"
+    content="Fresh, natural pomegranate and jambu delivered from our Batticaloa farm. No wax, no chemicals. 24-hour farm-to-door delivery. Cash on delivery." />
+  <meta name="keywords"
+    content="pomegranate, jambu, wax apple, fresh fruit, Batticaloa, Sri Lanka, organic, natural, farm fresh" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SanSat Fruit Co. | Fresh Pomegranate & Jambu" />
+  <meta property="og:description"
+    content="Fresh, natural pomegranate and jambu delivered from our Batticaloa farm. No wax, no chemicals." />
+  <meta property="og:image" content="/social-preview.jpg" />
+  <meta property="og:type" content="website" />
+
+  <!-- PWA Essential -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#C41E3A" />
+
+  <!-- Preload Critical Images for Faster Load -->
+  <link rel="preload" href="/SanSatLogo.webp" as="image" type="image/webp" />
+  <link rel="preload" href="/dark_red_thai_wax_apple.webp" as="image" type="image/webp" />
+  <link rel="preload" href="/red_pomegranate.webp" as="image" type="image/webp" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <!-- iOS PWA Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SanSat" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <script type="module" crossorigin src="/assets/index-Cgxe5WOF.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-Dh3zDKDA.js">
+  <link rel="modulepreload" crossorigin href="/assets/animations-oQXWb4Lk.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-CP3B-sCq.css">
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <!-- Service Worker Registration with FORCED Auto-Update -->
+  <script>
+    (function () {
+      // Force cache bypass for this page on every load
+      if ('caches' in window) {
+        caches.keys().then(function (cacheNames) {
+          // Log current caches for debugging
+          console.log('[App] Current caches:', cacheNames);
+        });
+      }
+
+      if ('serviceWorker' in navigator) {
+        // IMMEDIATE registration (don't wait for load)
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+          .then(function (registration) {
+            console.log('[App] SW registered:', registration.scope);
+
+            // FORCE UPDATE CHECK on every page load
+            registration.update().then(function () {
+              console.log('[App] SW update check completed');
+            }).catch(function (err) {
+              console.log('[App] SW update check failed:', err);
+            });
+
+            // Listen for new service worker installing
+            registration.addEventListener('updatefound', function () {
+              console.log('[App] New SW found, installing...');
+              var newWorker = registration.installing;
+
+              newWorker.addEventListener('statechange', function () {
+                console.log('[App] New SW state:', newWorker.state);
+
+                if (newWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // New version available - force immediate activation
+                    console.log('[App] New version ready - activating...');
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  } else {
+                    // First install - no action needed
+                    console.log('[App] SW installed for first time');
+                  }
+                }
+              });
+            });
+
+            // Handle controller change - this means new SW took over
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+              console.log('[App] Controller changed - refreshing page...');
+              if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+              }
+            });
+
+            // Listen for messages from SW
+            navigator.serviceWorker.addEventListener('message', function (event) {
+              if (event.data && event.data.type === 'SW_UPDATED') {
+                console.log('[App] SW updated to:', event.data.version);
+                // Automatic refresh is handled by controllerchange
+              }
+            });
+
+          })
+          .catch(function (error) {
+            console.log('[App] SW registration failed:', error);
+          });
+
+        // For PWA: Check for updates when app becomes visible (switching back to app)
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') {
+            console.log('[App] Page visible - checking for updates...');
+            navigator.serviceWorker.getRegistration().then(function (reg) {
+              if (reg) {
+                reg.update();
+              }
+            });
+          }
+        });
+
+        // For PWA: Check for updates on focus (tapping app icon)
+        window.addEventListener('focus', function () {
+          navigator.serviceWorker.getRegistration().then(function (reg) {
+            if (reg) {
+              reg.update();
+            }
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>
