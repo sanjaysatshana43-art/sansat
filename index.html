@@ -53,98 +53,41 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root"></div>
 
-  <!-- Service Worker Registration with FORCED Auto-Update -->
+  <!-- Service Worker Registration with Auto-Update -->
   <script>
-    (function () {
-      // Force cache bypass for this page on every load
-      if ('caches' in window) {
-        caches.keys().then(function (cacheNames) {
-          // Log current caches for debugging
-          console.log('[App] Current caches:', cacheNames);
-        });
-      }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          console.log('SW registered:', registration.scope);
 
-      if ('serviceWorker' in navigator) {
-        // IMMEDIATE registration (don't wait for load)
-        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
-          .then(function (registration) {
-            console.log('[App] SW registered:', registration.scope);
+          // Check for updates on every page load
+          registration.update();
 
-            // FORCE UPDATE CHECK on every page load
-            registration.update().then(function () {
-              console.log('[App] SW update check completed');
-            }).catch(function (err) {
-              console.log('[App] SW update check failed:', err);
-            });
-
-            // Listen for new service worker installing
-            registration.addEventListener('updatefound', function () {
-              console.log('[App] New SW found, installing...');
-              var newWorker = registration.installing;
-
-              newWorker.addEventListener('statechange', function () {
-                console.log('[App] New SW state:', newWorker.state);
-
-                if (newWorker.state === 'installed') {
-                  if (navigator.serviceWorker.controller) {
-                    // New version available - force immediate activation
-                    console.log('[App] New version ready - activating...');
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  } else {
-                    // First install - no action needed
-                    console.log('[App] SW installed for first time');
-                  }
-                }
-              });
-            });
-
-            // Handle controller change - this means new SW took over
-            var refreshing = false;
-            navigator.serviceWorker.addEventListener('controllerchange', function () {
-              console.log('[App] Controller changed - refreshing page...');
-              if (!refreshing) {
-                refreshing = true;
+          // Listen for new service worker waiting
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New content available - auto-activate it
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                console.log('New version available - refreshing...');
                 window.location.reload();
               }
             });
-
-            // Listen for messages from SW
-            navigator.serviceWorker.addEventListener('message', function (event) {
-              if (event.data && event.data.type === 'SW_UPDATED') {
-                console.log('[App] SW updated to:', event.data.version);
-                // Automatic refresh is handled by controllerchange
-              }
-            });
-
-          })
-          .catch(function (error) {
-            console.log('[App] SW registration failed:', error);
           });
 
-        // For PWA: Check for updates when app becomes visible (switching back to app)
-        document.addEventListener('visibilitychange', function () {
-          if (document.visibilityState === 'visible') {
-            console.log('[App] Page visible - checking for updates...');
-            navigator.serviceWorker.getRegistration().then(function (reg) {
-              if (reg) {
-                reg.update();
-              }
-            });
-          }
-        });
-
-        // For PWA: Check for updates on focus (tapping app icon)
-        window.addEventListener('focus', function () {
-          navigator.serviceWorker.getRegistration().then(function (reg) {
-            if (reg) {
-              reg.update();
-            }
+          // Handle controller change (when new SW takes over)
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('New service worker activated');
           });
-        });
-      }
-    })();
+        } catch (error) {
+          console.log('SW registration failed:', error);
+        }
+      });
+    }
   </script>
 </body>
 

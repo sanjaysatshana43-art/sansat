@@ -1,9 +1,4 @@
-// AGGRESSIVE CACHE BUSTING - Forces update on every visit
-// Change this version number OR the timestamp to force cache clear
-const CACHE_VERSION = 'v22';
-const BUILD_TIMESTAMP = '2026011609'; // YYYYMMDDHH format - update this to force refresh
-const CACHE_NAME = `sansat-cache-${CACHE_VERSION}-${BUILD_TIMESTAMP}`;
-
+const CACHE_NAME = 'sansat-cache-v21';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -27,125 +22,89 @@ const ASSETS_TO_CACHE = [
   '/SanSatLogo.webp'
 ];
 
-// INSTALL: Force immediate activation of new service worker
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing new version:', CACHE_NAME);
-  // CRITICAL: Skip waiting to activate immediately
+  // Force new service worker to activate immediately
   self.skipWaiting();
-
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching assets');
+      console.log('Opened cache');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
-// ACTIVATE: Delete ALL old caches and take control immediately
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating new version:', CACHE_NAME);
-
+  // Take control of all pages immediately
   event.waitUntil(
     Promise.all([
-      // Take control of all pages immediately
       clients.claim(),
-      // Delete ALL old caches
+      // Clean up old caches
       caches.keys().then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
             if (cacheName !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', cacheName);
+              console.log('Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
         );
       })
-    ]).then(() => {
-      // Notify all clients to refresh
-      return clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'SW_UPDATED', version: CACHE_NAME });
-        });
-      });
-    })
+    ])
   );
 });
 
-// FETCH: Network-first for EVERYTHING to ensure fresh content
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests and cross-origin requests
-  if (event.request.method !== 'GET') return;
-  if (!event.request.url.startsWith(self.location.origin)) return;
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
 
   const url = new URL(event.request.url);
+  const isAsset = url.pathname.match(/\.(js|css|json)$/) || event.request.destination === 'script' || event.request.destination === 'style';
+  const isHTML = event.request.mode === 'navigate' || event.request.destination === 'document';
 
-  // ALWAYS use network-first for HTML and assets (JS/CSS)
-  const isHTML = event.request.mode === 'navigate' ||
-    event.request.destination === 'document' ||
-    url.pathname === '/' ||
-    url.pathname.endsWith('.html');
-  const isAsset = url.pathname.match(/\.(js|css|json)$/) ||
-    event.request.destination === 'script' ||
-    event.request.destination === 'style';
-
+  // NETWORK FIRST for HTML and JS/CSS (ensures updates are always fetched)
   if (isHTML || isAsset) {
-    // NETWORK FIRST - Always fetch fresh, fallback to cache only when offline
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' })
+      fetch(event.request)
         .then((response) => {
-          if (response && response.status === 200) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
+          // Update cache with new version
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
           return response;
         })
         .catch(() => {
-          console.log('[SW] Offline - serving cached:', event.request.url);
+          // Offline? Serve cached version
           return caches.match(event.request);
         })
     );
   } else {
-    // Stale-while-revalidate for images - serve cache but update in background
+    // CACHE FIRST for images (faster, less critical for updates)
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(event.request, responseClone);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedResponse);
-
-        // Return cached immediately, update in background
-        return cachedResponse || fetchPromise;
+      caches.match(event.request).then((response) => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request).then((fetchResponse) => {
+          // Cache new assets dynamically
+          if (fetchResponse && fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return fetchResponse;
+        });
       })
     );
   }
 });
 
-// MESSAGE: Handle skip waiting and cache clear requests
+// Handle offline message
 self.addEventListener('message', (event) => {
-  if (event.data) {
-    if (event.data.type === 'SKIP_WAITING') {
-      self.skipWaiting();
-    }
-    if (event.data.type === 'CLEAR_ALL_CACHES') {
-      caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => caches.delete(cacheName))
-        );
-      }).then(() => {
-        event.ports[0]?.postMessage({ cleared: true });
-      });
-    }
-    if (event.data.type === 'GET_VERSION') {
-      event.ports[0]?.postMessage({ version: CACHE_NAME });
-    }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
 });
